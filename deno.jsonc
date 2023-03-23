@@ -1,0 +1,11 @@
+{
+    "imports": {
+        "@mysten/sui.js": "npm:@mysten/sui.js@experimental"
+    },
+    "fmt": {
+        "options": {
+            "lineWidth": 140,
+            "indentWidth": 4
+        }
+    }
+}
