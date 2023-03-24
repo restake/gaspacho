@@ -1,4 +1,12 @@
-import { Checkpoint, Connection, DelegatedStake, JsonRpcProvider, SuiSystemStateSummary } from "@mysten/sui.js";
+import {
+    Checkpoint,
+    Connection,
+    DelegatedStake,
+    JsonRpcProvider,
+    PaginatedEvents,
+    SuiEventFilter,
+    SuiSystemStateSummary,
+} from "@mysten/sui.js";
 
 export type ActiveValidator = SuiSystemStateSummary["activeValidators"][number];
 
@@ -56,5 +64,16 @@ export class SuiRpc {
      */
     getValidatorStakes(owner: string): Promise<DelegatedStake[]> {
         return this.#provider.getStakes({ owner });
+    }
+
+    /**
+     * Query on-chain events.
+     *
+     * @param query
+     * @returns Events that match the query.
+     */
+    queryEvents(query: SuiEventFilter): Promise<PaginatedEvents> {
+        // TODO: add support for PaginationArguments and OrderArguments.
+        return this.#provider.queryEvents({ query });
     }
 }
