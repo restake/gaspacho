@@ -27,7 +27,9 @@ export class SuiRgp {
      * @returns Latest validator data.
      */
     getLatestValidatorData(): ActiveValidator | undefined {
-        return this.#latestSystemState.activeValidators.find((validator) => validator.suiAddress === this.#validatorAddress);
+        return this.#latestSystemState.activeValidators.find((validator) => {
+            return validator.suiAddress === this.#validatorAddress;
+        });
     }
 
     /**
@@ -46,7 +48,9 @@ export class SuiRgp {
      * @returns Total amount of stake in the network in MIST.
      */
     getNextEpochNetworkTotalStake(): number {
-        return this.#latestSystemState.activeValidators.reduce((totalStake, validator) => totalStake + validator.nextEpochStake, 0);
+        return this.#latestSystemState.activeValidators.reduce((totalStake, validator) => {
+            return totalStake + validator.nextEpochStake;
+        }, 0);
     }
 
     /**
@@ -56,7 +60,9 @@ export class SuiRgp {
      * @returns DelegatedStake objects that are assigned to validatorAddress.
      */
     getValidatorSelfStakes(): DelegatedStake[] {
-        return this.#validatorStakes.filter((stake) => stake.validatorAddress === this.#validatorAddress);
+        return this.#validatorStakes.filter((stake) => {
+            return stake.validatorAddress === this.#validatorAddress;
+        });
     }
 
     /**
@@ -67,8 +73,12 @@ export class SuiRgp {
      */
     getValidatorSelfStakesAmount(): number {
         return this.getValidatorSelfStakes().map((stake) => {
-            return stake.stakes.reduce((amount, stake) => amount + stake.principal + (stake.estimatedReward ?? 0), 0);
-        }).reduce((amount, stake) => amount + stake, 0);
+            return stake.stakes.reduce((amount, stake) => {
+                return amount + stake.principal + (stake.estimatedReward ?? 0);
+            }, 0);
+        }).reduce((amount, stake) => {
+            return amount + stake;
+        }, 0);
     }
 
     /**
