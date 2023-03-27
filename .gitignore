@@ -1,2 +1,7 @@
-.vscode
-venv
+/.direnv
+/.envrc.local
+/.idea
+/.vscode
+*.bundle.js
+.DS_Store
+.DS_Store?
