@@ -55,7 +55,6 @@ export class SuiRgp {
 
     /**
      * Get all DelegatedStake objects that have been delegated by the validator to itself, e.g. self-stake.
-     * TODO: make the return type more strict.
      *
      * @returns DelegatedStake objects that are assigned to validatorAddress.
      */
@@ -67,7 +66,7 @@ export class SuiRgp {
 
     /**
      * Get the total amount of self-stakes.
-     * TODO: this currently also includes estimatedRewards. This needs to be confirmed! Also verify return type.
+     * TODO: this currently also includes estimatedRewards. This needs to be confirmed!
      *
      * @returns Total amount of self-stakes in MIST.
      */
@@ -99,12 +98,12 @@ export class SuiRgp {
 
     /**
      * Get processed gas units for the current epoch (also known as `u` in the RGP formula).
-     * TODO: we should adjust this calculation to take into account current epoch progress (time-wise).
      *
      * @returns Processed gas units in MIST.
      */
     getProcessedGasUnits(): number {
-        return this.#latestCheckpoint.epochRollingGasCostSummary.computationCost / this.#latestSystemState.referenceGasPrice;
+        return this.#latestCheckpoint.epochRollingGasCostSummary.computationCost / this.#latestSystemState.referenceGasPrice /
+            this.getEpochProgress();
     }
 
     /**
@@ -154,12 +153,13 @@ export class SuiRgp {
     }
 
     /**
-     * Get epoch length in hours.
+     * Get epoch progress, i.e. where exactly we are in the current epoch.
+     * This is a value between 0 and 1.
      *
-     * @returns Epoch length in hours.
+     * @returns
      */
-    getEpochLengthInHours() {
-        return this.#latestSystemState.epochDurationMs / 1000 / 3600;
+    getEpochProgress(): number {
+        return ((new Date()).getTime() - this.#latestSystemState.epochStartTimestampMs) / this.#latestSystemState.epochDurationMs;
     }
 
     /**
@@ -169,7 +169,7 @@ export class SuiRgp {
      * @returns Costs per epoch in USD.
      */
     getValidatorEpochCosts(): number {
-        return (Config.SERVER_COSTS_USD / (24 * 30)) * this.getEpochLengthInHours();
+        return (Config.VALIDATOR_COSTS_USD / (24 * 30)) * (this.#latestSystemState.epochDurationMs / 1000 / 3600);
     }
 
     /**
@@ -178,7 +178,7 @@ export class SuiRgp {
      *
      * @returns Share of the network's total stake.
      */
-    getValidatorShareOfNetworkStake(): number {
+    getValidatorRewardShare(): number {
         const beta = this.getValidatorSelfStakesShareInPool();
         const sigma = this.getValidatorShareInNetwork();
         const alpha = this.getStorageFundShare();
@@ -200,7 +200,7 @@ export class SuiRgp {
     getValidatorBreakevenRgp(): number {
         const epochCosts = this.getValidatorEpochCosts();
 
-        const K = this.getValidatorShareOfNetworkStake();
+        const K = this.getValidatorRewardShare();
         const S = this.getNextEpochNetworkTotalStake();
         const u = this.getProcessedGasUnits();
 

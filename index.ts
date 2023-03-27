@@ -5,7 +5,7 @@ import { SuiCalculator } from "./sui/sui_calculator.ts";
 import { SuiRpc } from "./sui/sui_rpc.ts";
 
 const connection = new Connection({
-    fullnode: Config.RPC_URL,
+    fullnode: Config.SUI_RPC_URL,
 });
 
 const rpc = new SuiRpc(connection);
