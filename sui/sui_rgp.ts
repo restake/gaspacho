@@ -130,7 +130,8 @@ export class SuiRgp {
      * @returns Storage fund share.
      */
     getStorageFundShare(): number {
-        const storageFund = this.#latestSystemState.storageFund +
+        // TODO: verify if this is the correct field to use (prevously we had access to .storageFund).
+        const storageFund = this.#latestSystemState.storageFundNonRefundableBalance +
             this.#latestCheckpoint.epochRollingGasCostSummary.storageCost -
             this.#latestCheckpoint.epochRollingGasCostSummary.storageRebate;
 

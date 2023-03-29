@@ -34,7 +34,7 @@ export class SuiRpc {
      *
      * @returns Current reference gas price in MIST.
      */
-    getReferenceGasPrice(): Promise<number> {
+    getReferenceGasPrice(): Promise<bigint> {
         return this.#provider.getReferenceGasPrice();
     }
 
@@ -43,7 +43,7 @@ export class SuiRpc {
      *
      * @returns Latest checkpoint sequence number.
      */
-    getLatestCheckpointSequenceNumber(): Promise<number> {
+    getLatestCheckpointSequenceNumber(): Promise<string> {
         return this.#provider.getLatestCheckpointSequenceNumber();
     }
 
@@ -53,7 +53,7 @@ export class SuiRpc {
      * @param id Sequence number of the checkpoint.
      * @returns
      */
-    getCheckpoint(id: number): Promise<Checkpoint> {
+    getCheckpoint(id: string): Promise<Checkpoint> {
         return this.#provider.getCheckpoint({ id });
     }
 

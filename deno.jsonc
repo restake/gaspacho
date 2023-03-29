@@ -1,6 +1,6 @@
 {
     "imports": {
-        "@mysten/sui.js": "npm:@mysten/sui.js@0.0.0-experimental-20230322030523"
+        "@mysten/sui.js": "npm:@mysten/sui.js@0.30.0"
     },
     "fmt": {
         "options": {
