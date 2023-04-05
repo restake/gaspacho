@@ -14,9 +14,8 @@ export class SuiPrice {
     static #apiUrl: string = Config.COINGECKO_API_URL;
     static #coinId: string = Config.COINGECKO_COIN_ID;
 
-    // deno-lint-ignore no-explicit-any
-    private static async getJson(response: Response): Promise<any> {
-        return await response.json();
+    private static async getJson<T>(response: Response): Promise<T> {
+        return await response.json() as T;
     }
 
     /**
