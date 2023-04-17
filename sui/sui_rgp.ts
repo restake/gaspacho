@@ -136,7 +136,7 @@ export class SuiRgp {
             Number(this.#latestCheckpoint.epochRollingGasCostSummary.storageCost) -
             Number(this.#latestCheckpoint.epochRollingGasCostSummary.storageRebate);
 
-        return 1 - storageFund / this.getNextEpochNetworkTotalStake();
+        return storageFund / this.getNextEpochNetworkTotalStake();
     }
 
     /**
