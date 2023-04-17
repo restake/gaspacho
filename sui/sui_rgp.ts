@@ -49,7 +49,7 @@ export class SuiRgp {
      */
     getNextEpochNetworkTotalStake(): number {
         return this.#latestSystemState.activeValidators.reduce((totalStake, validator) => {
-            return totalStake + validator.nextEpochStake;
+            return Number(totalStake) + Number(validator.nextEpochStake);
         }, 0);
     }
 
@@ -73,7 +73,7 @@ export class SuiRgp {
     getValidatorSelfStakesAmount(): number {
         return this.getValidatorSelfStakes().map((stake) => {
             return stake.stakes.reduce((amount, stake) => {
-                return amount + stake.principal + (stake.estimatedReward ?? 0);
+                return Number(amount) + Number(stake.principal) + Number(stake.estimatedReward ?? 0);
             }, 0);
         }).reduce((amount, stake) => {
             return amount + stake;
@@ -93,7 +93,7 @@ export class SuiRgp {
             return 0;
         }
 
-        return data.poolTokenBalance + data.pendingStake - data.pendingPoolTokenWithdraw;
+        return Number(data.poolTokenBalance) + Number(data.pendingStake) - Number(data.pendingPoolTokenWithdraw);
     }
 
     /**
@@ -102,7 +102,8 @@ export class SuiRgp {
      * @returns Processed gas units in MIST.
      */
     getProcessedGasUnits(): number {
-        return this.#latestCheckpoint.epochRollingGasCostSummary.computationCost / this.#latestSystemState.referenceGasPrice /
+        return Number(this.#latestCheckpoint.epochRollingGasCostSummary.computationCost) /
+            Number(this.#latestSystemState.referenceGasPrice) /
             this.getEpochProgress();
     }
 
@@ -131,9 +132,9 @@ export class SuiRgp {
      */
     getStorageFundShare(): number {
         // TODO: verify if this is the correct field to use (prevously we had access to .storageFund).
-        const storageFund = this.#latestSystemState.storageFundNonRefundableBalance +
-            this.#latestCheckpoint.epochRollingGasCostSummary.storageCost -
-            this.#latestCheckpoint.epochRollingGasCostSummary.storageRebate;
+        const storageFund = Number(this.#latestSystemState.storageFundNonRefundableBalance) +
+            Number(this.#latestCheckpoint.epochRollingGasCostSummary.storageCost) -
+            Number(this.#latestCheckpoint.epochRollingGasCostSummary.storageRebate);
 
         return 1 - storageFund / this.getNextEpochNetworkTotalStake();
     }
@@ -150,7 +151,7 @@ export class SuiRgp {
             return 0;
         }
 
-        return data.nextEpochCommissionRate;
+        return Number(data.nextEpochCommissionRate);
     }
 
     /**
@@ -160,7 +161,8 @@ export class SuiRgp {
      * @returns
      */
     getEpochProgress(): number {
-        return ((new Date()).getTime() - this.#latestSystemState.epochStartTimestampMs) / this.#latestSystemState.epochDurationMs;
+        return ((new Date()).getTime() - Number(this.#latestSystemState.epochStartTimestampMs)) /
+            Number(this.#latestSystemState.epochDurationMs);
     }
 
     /**
@@ -170,7 +172,7 @@ export class SuiRgp {
      * @returns Costs per epoch in USD.
      */
     getValidatorEpochCosts(): number {
-        return (Config.VALIDATOR_COSTS_USD / (24 * 30)) * (this.#latestSystemState.epochDurationMs / 1000 / 3600);
+        return (Config.VALIDATOR_COSTS_USD / (24 * 30)) * (Number(this.#latestSystemState.epochDurationMs) / 1000 / 3600);
     }
 
     /**
