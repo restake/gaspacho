@@ -131,12 +131,15 @@ export class SuiRgp {
      * @returns Storage fund share.
      */
     getStorageFundShare(): number {
-        // TODO: verify if this is the correct field to use (prevously we had access to .storageFund).
-        const storageFund = Number(this.#latestSystemState.storageFundNonRefundableBalance) +
-            Number(this.#latestCheckpoint.epochRollingGasCostSummary.storageCost) -
-            Number(this.#latestCheckpoint.epochRollingGasCostSummary.storageRebate);
+        const currentStorageFund = Number(this.#latestSystemState.storageFundNonRefundableBalance) +
+        Number(this.#latestSystemState.storageFundTotalObjectStorageRebates);
 
-        return storageFund / this.getNextEpochNetworkTotalStake();
+        const nextEpochStorageFundChange = (Number(this.#latestCheckpoint.epochRollingGasCostSummary.storageCost) -
+        Number(this.#latestCheckpoint.epochRollingGasCostSummary.storageRebate)) / this.getEpochProgress();
+
+        const nextEpochStorageFund = currentStorageFund + nextEpochStorageFundChange;
+
+        return nextEpochStorageFund / this.getNextEpochNetworkTotalStake();
     }
 
     /**
@@ -151,7 +154,7 @@ export class SuiRgp {
             return 0;
         }
 
-        return Number(data.nextEpochCommissionRate);
+        return Number(data.nextEpochCommissionRate) / 10000;
     }
 
     /**
@@ -184,7 +187,7 @@ export class SuiRgp {
     getValidatorRewardShare(): number {
         const beta = this.getValidatorSelfStakesShareInPool();
         const sigma = this.getValidatorShareInNetwork();
-        const alpha = this.getStorageFundShare();
+        const alpha = 1 - this.getStorageFundShare();
         const delta = this.getValidatorNextEpochCommissionRate();
 
         const mu = 1; // TODO: check if we are being tallied or not.
@@ -204,9 +207,12 @@ export class SuiRgp {
         const epochCosts = this.getValidatorEpochCosts();
 
         const K = this.getValidatorRewardShare();
-        const S = this.getNextEpochNetworkTotalStake();
+        // const S = this.getNextEpochNetworkTotalStake();
         const u = this.getProcessedGasUnits();
 
-        return suiToMist(epochCosts / (Config.SUI_PRICE_USD * K) - S / 10000) / u;
+        // Currently .stakeSubsidyCurrentDistributionAmount
+        // Should be .stakeSubsidyCurrentDistributionAmount * (1 - .stakeSubsidyDecreaseRate / 10000)
+        // ONLY IF .stakeSubsidyPeriodLength is equal to 1
+        return Math.max(0, suiToMist(epochCosts / (Config.SUI_PRICE_USD * K) - 900000) / u);
     }
 }
