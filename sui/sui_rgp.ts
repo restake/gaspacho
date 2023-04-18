@@ -3,6 +3,8 @@ import { ActiveValidator } from "./sui_rpc.ts";
 import Config from "../config.ts";
 import { mistToSui, suiToMist } from "../mist.ts";
 
+const n = Number;
+const b = BigInt;
 export type Mist = bigint;
 
 export class SuiRgp {
@@ -51,7 +53,7 @@ export class SuiRgp {
      */
     getNextEpochNetworkTotalStake(): Mist {
         return this.#latestSystemState.activeValidators.reduce((totalStake, validator) => {
-            return BigInt(totalStake) + BigInt(validator.nextEpochStake);
+            return b(totalStake) + b(validator.nextEpochStake);
         }, 0n);
     }
 
@@ -75,7 +77,7 @@ export class SuiRgp {
     getValidatorSelfStakesAmount(): Mist {
         return this.getValidatorSelfStakes().map((stake) => {
             return stake.stakes.reduce((amount, stake) => {
-                return BigInt(amount) + BigInt(stake.principal) + BigInt(stake.estimatedReward ?? "0");
+                return b(amount) + b(stake.principal) + b(stake.estimatedReward ?? "0");
             }, 0n);
         }).reduce((amount, stake) => {
             return amount + stake;
@@ -95,7 +97,7 @@ export class SuiRgp {
             return 0n;
         }
 
-        return BigInt(data.poolTokenBalance) + BigInt(data.pendingStake) - BigInt(data.pendingPoolTokenWithdraw);
+        return b(data.poolTokenBalance) + b(data.pendingStake) - b(data.pendingPoolTokenWithdraw);
     }
 
     /**
@@ -104,10 +106,10 @@ export class SuiRgp {
      * @returns Processed gas units in MIST.
      */
     getProcessedGasUnits(): Mist {
-        const processedGasUnits = Number(this.#latestCheckpoint.epochRollingGasCostSummary.computationCost) /
-            Number(this.#latestSystemState.referenceGasPrice) / this.getEpochProgress();
+        const processedGasUnits = n(this.#latestCheckpoint.epochRollingGasCostSummary.computationCost) /
+            n(this.#latestSystemState.referenceGasPrice) / this.getEpochProgress();
 
-        return BigInt(Math.ceil(processedGasUnits));
+        return b(Math.ceil(processedGasUnits));
     }
 
     /**
@@ -116,7 +118,7 @@ export class SuiRgp {
      * @returns Self-stake share of the pool's total token balance (in percentage).
      */
     getValidatorSelfStakesShareInPool(): number {
-        return Number(this.getValidatorSelfStakesAmount()) / Number(this.getPoolTotalTokenBalance());
+        return n(this.getValidatorSelfStakesAmount()) / n(this.getPoolTotalTokenBalance());
     }
 
     /**
@@ -125,7 +127,7 @@ export class SuiRgp {
      * @returns Validator's share of the network's total stake (in percentage).
      */
     getValidatorShareInNetwork(): number {
-        return Number(this.getPoolTotalTokenBalance()) / Number(this.getNextEpochNetworkTotalStake());
+        return n(this.getPoolTotalTokenBalance()) / n(this.getNextEpochNetworkTotalStake());
     }
 
     /**
@@ -134,17 +136,17 @@ export class SuiRgp {
      * @returns Storage fund share (in percentage).
      */
     getStorageFundShare(): number {
-        const currentStorageFund = BigInt(this.#latestSystemState.storageFundNonRefundableBalance) +
-            BigInt(this.#latestSystemState.storageFundTotalObjectStorageRebates);
+        const currentStorageFund = b(this.#latestSystemState.storageFundNonRefundableBalance) +
+            b(this.#latestSystemState.storageFundTotalObjectStorageRebates);
 
-        const nextEpochStorageFundChange = Number(
-            BigInt(this.#latestCheckpoint.epochRollingGasCostSummary.storageCost) -
-                BigInt(this.#latestCheckpoint.epochRollingGasCostSummary.storageRebate),
+        const nextEpochStorageFundChange = n(
+            b(this.#latestCheckpoint.epochRollingGasCostSummary.storageCost) -
+                b(this.#latestCheckpoint.epochRollingGasCostSummary.storageRebate),
         ) / this.getEpochProgress();
 
-        const nextEpochStorageFund = Number(currentStorageFund) + nextEpochStorageFundChange;
+        const nextEpochStorageFund = n(currentStorageFund) + nextEpochStorageFundChange;
 
-        return nextEpochStorageFund / Number(this.getNextEpochNetworkTotalStake());
+        return nextEpochStorageFund / n(this.getNextEpochNetworkTotalStake());
     }
 
     /**
@@ -158,7 +160,7 @@ export class SuiRgp {
             return 0;
         }
 
-        return Number(data.nextEpochCommissionRate) / 10000;
+        return n(data.nextEpochCommissionRate) / 10000;
     }
 
     /**
@@ -168,8 +170,8 @@ export class SuiRgp {
      * @returns
      */
     getEpochProgress(): number {
-        return (Date.now() - Number(this.#latestSystemState.epochStartTimestampMs)) /
-            Number(this.#latestSystemState.epochDurationMs);
+        return (Date.now() - n(this.#latestSystemState.epochStartTimestampMs)) /
+            n(this.#latestSystemState.epochDurationMs);
     }
 
     /**
@@ -179,23 +181,22 @@ export class SuiRgp {
      * @returns Costs per epoch in USD.
      */
     getValidatorEpochCosts(): number {
-        return (Config.VALIDATOR_COSTS_USD / (24 * 30)) * (Number(this.#latestSystemState.epochDurationMs) / 1000 / 3600);
+        return (Config.VALIDATOR_COSTS_USD / (24 * 30)) * (n(this.#latestSystemState.epochDurationMs) / 1000 / 3600);
     }
 
     /**
      * Get validator's share of the network's total stake (also known as `K` in the RGP formula).
      * This is also sometimes referred to as the validator's voting power.
+     * @param gamma % of rewards that are distributed between validators
      *
      * @returns Share of the network's total stake.
      */
-    getValidatorRewardShare(): number {
+    getValidatorRewardShare(gamma = 0.95): number {
         const beta = this.getValidatorSelfStakesShareInPool();
         const sigma = this.getValidatorShareInNetwork();
         const alpha = 1 - this.getStorageFundShare();
         const delta = this.getValidatorNextEpochCommissionRate();
         const mu = this.getValidatorTallyingStatus();
-
-        const gamma = 0.95; // % of rewards that are distributed between validators
 
         const N = this.getActiveValidators().length;
 
@@ -206,7 +207,7 @@ export class SuiRgp {
         const activeValidators = this.getActiveValidators();
         const validator = activeValidators.find((validator) => validator.suiAddress === address);
 
-        return Number(validator?.votingPower ?? "0") / 10000;
+        return n(validator?.votingPower ?? "0") / 10000;
     }
 
     /**
@@ -224,7 +225,7 @@ export class SuiRgp {
             return acc;
         }, 0);
 
-        return Number(tallyScore <= 2 / 3);
+        return n(tallyScore <= 2 / 3);
     }
 
     /**
@@ -233,9 +234,9 @@ export class SuiRgp {
      * @returns
      */
     getNextEpochStakeSubsidy(): number {
-        let stakeSubidy = Number(this.#latestSystemState.stakeSubsidyCurrentDistributionAmount);
-        if (Number(this.#latestSystemState.stakeSubsidyPeriodLength) === 1) {
-            stakeSubidy *= 1 - Number(this.#latestSystemState.stakeSubsidyDecreaseRate) / 10000;
+        let stakeSubidy = n(this.#latestSystemState.stakeSubsidyCurrentDistributionAmount);
+        if (n(this.#latestSystemState.stakeSubsidyPeriodLength) === 1) {
+            stakeSubidy *= 1 - n(this.#latestSystemState.stakeSubsidyDecreaseRate) / 10000;
         }
 
         return stakeSubidy;
@@ -250,7 +251,7 @@ export class SuiRgp {
         const epochCosts = this.getValidatorEpochCosts();
 
         const K = this.getValidatorRewardShare();
-        const u = Number(this.getProcessedGasUnits());
+        const u = n(this.getProcessedGasUnits());
         const S = this.getNextEpochStakeSubsidy();
 
         return Math.max(1, suiToMist(epochCosts / (Config.SUI_PRICE_USD * K) - mistToSui(S)) / u);
