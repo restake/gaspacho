@@ -21,7 +21,6 @@ export class SuiRpc {
 
     /**
      * Get the latest SUI system state. This state is not always up to date.
-     * TODO: confirm WHEN EXACTLY is this updated.
      *
      * @returns Latest SUI system state.
      */

@@ -1,7 +1,7 @@
 import { Checkpoint, DelegatedStake, SuiSystemStateSummary } from "@mysten/sui.js";
 import { ActiveValidator } from "./sui_rpc.ts";
 import Config from "../config.ts";
-import { suiToMist } from "../mist.ts";
+import { mistToSui, suiToMist } from "../mist.ts";
 
 export class SuiRgp {
     #validatorAddress: string;
@@ -132,10 +132,10 @@ export class SuiRgp {
      */
     getStorageFundShare(): number {
         const currentStorageFund = Number(this.#latestSystemState.storageFundNonRefundableBalance) +
-        Number(this.#latestSystemState.storageFundTotalObjectStorageRebates);
+            Number(this.#latestSystemState.storageFundTotalObjectStorageRebates);
 
         const nextEpochStorageFundChange = (Number(this.#latestCheckpoint.epochRollingGasCostSummary.storageCost) -
-        Number(this.#latestCheckpoint.epochRollingGasCostSummary.storageRebate)) / this.getEpochProgress();
+            Number(this.#latestCheckpoint.epochRollingGasCostSummary.storageRebate)) / this.getEpochProgress();
 
         const nextEpochStorageFund = currentStorageFund + nextEpochStorageFundChange;
 
@@ -150,7 +150,6 @@ export class SuiRgp {
     getValidatorNextEpochCommissionRate(): number {
         const data = this.getLatestValidatorData();
         if (!data) {
-            // TODO: what should be the actual fallback value?
             return 0;
         }
 
@@ -189,13 +188,42 @@ export class SuiRgp {
         const sigma = this.getValidatorShareInNetwork();
         const alpha = 1 - this.getStorageFundShare();
         const delta = this.getValidatorNextEpochCommissionRate();
+        const mu = this.getValidatorTallyingStatus();
 
-        const mu = 1; // TODO: check if we are being tallied or not.
         const gamma = 0.95; // % of rewards that are distributed between validators
 
         const N = this.getActiveValidators().length;
 
         return alpha * (beta + delta * (1 - beta)) * mu * sigma + (1 - alpha) * gamma / N;
+    }
+
+    getValidatorVotingPower(address: string): number {
+        const activeValidators = this.getActiveValidators();
+        const validator = activeValidators.find((validator) => validator.suiAddress === address);
+
+        return Number(validator?.votingPower) / 10000;
+    }
+
+    getValidatorTallyingStatus(): number {
+        const reports = this.#latestSystemState.validatorReportRecords;
+        const tallyScore = reports.reduce((acc, report) => {
+            const reporter = report[0];
+            if (this.#validatorAddress in report[1]) {
+                acc += this.getValidatorVotingPower(reporter);
+            }
+            return acc;
+        }, 0);
+
+        return Number(tallyScore <= 2 / 3);
+    }
+
+    getNextEpochStakeSubsidy(): number {
+        let stakeSubidy = Number(this.#latestSystemState.stakeSubsidyCurrentDistributionAmount);
+        if (Number(this.#latestSystemState.stakeSubsidyPeriodLength) === 1) {
+            stakeSubidy *= 1 - Number(this.#latestSystemState.stakeSubsidyDecreaseRate) / 10000;
+        }
+
+        return stakeSubidy;
     }
 
     /**
@@ -207,12 +235,9 @@ export class SuiRgp {
         const epochCosts = this.getValidatorEpochCosts();
 
         const K = this.getValidatorRewardShare();
-        // const S = this.getNextEpochNetworkTotalStake();
         const u = this.getProcessedGasUnits();
+        const S = this.getNextEpochStakeSubsidy();
 
-        // Currently .stakeSubsidyCurrentDistributionAmount
-        // Should be .stakeSubsidyCurrentDistributionAmount * (1 - .stakeSubsidyDecreaseRate / 10000)
-        // ONLY IF .stakeSubsidyPeriodLength is equal to 1
-        return Math.max(0, suiToMist(epochCosts / (Config.SUI_PRICE_USD * K) - 900000) / u);
+        return Math.max(0, suiToMist(epochCosts / (Config.SUI_PRICE_USD * K) - mistToSui(S)) / u);
     }
 }
