@@ -181,7 +181,7 @@ export class SuiRgp {
      * @returns Costs per epoch in USD.
      */
     getValidatorEpochCosts(): number {
-        return (Config.VALIDATOR_COSTS_USD / (24 * 30)) * (n(this.#latestSystemState.epochDurationMs) / 1000 / 3600);
+        return (Config.VALIDATOR_MONTHLY_COSTS_USD / (24 * 30)) * (n(this.#latestSystemState.epochDurationMs) / 1000 / 3600);
     }
 
     /**
