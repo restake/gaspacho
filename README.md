@@ -21,6 +21,7 @@ There's two ways to run Gaspacho - as a Docker container or directly from source
 We have prebuilt Docker images available on [Docker Hub](https://hub.docker.com/repository/docker/restake/gaspacho/tags). Feel free to use them.
 
 ```sh
+docker pull restake/gaspacho:latest
 docker run --rm -ti --name gaspacho --env-file .env restake/gaspacho:latest
 ```
 The supplied `.env` file can be found in the project root.
