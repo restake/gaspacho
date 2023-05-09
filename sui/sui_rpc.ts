@@ -3,7 +3,9 @@ import {
     Connection,
     DelegatedStake,
     JsonRpcProvider,
+    OrderArguments,
     PaginatedEvents,
+    PaginationArguments,
     SuiEventFilter,
     SuiSystemStateSummary,
 } from "@mysten/sui.js";
@@ -71,8 +73,16 @@ export class SuiRpc {
      * @param query
      * @returns Events that match the query.
      */
-    queryEvents(query: SuiEventFilter): Promise<PaginatedEvents> {
+    queryEvents(
+        params:
+            & {
+                /** the event query criteria. */
+                query: SuiEventFilter;
+            }
+            & PaginationArguments<PaginatedEvents["nextCursor"]>
+            & OrderArguments,
+    ): Promise<PaginatedEvents> {
         // TODO: add support for PaginationArguments and OrderArguments.
-        return this.#provider.queryEvents({ query });
+        return this.#provider.queryEvents(params);
     }
 }

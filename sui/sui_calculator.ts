@@ -1,4 +1,4 @@
-import { Checkpoint } from "@mysten/sui.js";
+import { Checkpoint, EventId, SuiEvent, VALIDATORS_EVENTS_QUERY } from "@mysten/sui.js";
 import { SuiRgp } from "./sui_rgp.ts";
 import { SuiRpc } from "./sui_rpc.ts";
 
@@ -37,16 +37,38 @@ export class SuiCalculator {
     }
 
     /**
-     * Get all ValidatorEpochInfoEvents that have been emitted for the validator.
+     * Get ValidatorEpochInfoEvents that were emitted by validators during epoch changes.
      *
      * @returns ValidatorEpochInfoEvents.
      */
-    async getValidatorEpochInfoEvents() {
-        return (await this.#rpc.queryEvents({
-            MoveEventType: "0x2::validator_set::ValidatorEpochInfoEvent",
-        })).data.filter((item) => {
-            return item?.parsedJson?.validator_address === this.#validatorAddress;
-        });
+    async getValidatorEpochInfoEvents(): Promise<SuiEvent[]> {
+        // RPC default limit is 50 events per page, so we need to make multiple requests to get more.
+        const limit = 100; // TODO: this should be actually suiLatestSystemState.activeValidators.length
+        const order = "descending";
+
+        let hasNextPage = true;
+        let cursor: EventId | null | undefined;
+        const events: SuiEvent[] = [];
+
+        while (hasNextPage && events.length < limit) {
+            const validatorEventsResponse = await this.#rpc.queryEvents({
+                query: {
+                    All: [
+                        { MoveEventType: VALIDATORS_EVENTS_QUERY },
+                        { MoveEventField: { path: "/validator_address", value: this.#validatorAddress } }
+                    ]
+                },
+                cursor,
+                limit,
+                order,
+            });
+
+            cursor = validatorEventsResponse.nextCursor;
+            hasNextPage = validatorEventsResponse.hasNextPage;
+            events.push(...validatorEventsResponse.data);
+        }
+
+        return events;
     }
 
     /**
